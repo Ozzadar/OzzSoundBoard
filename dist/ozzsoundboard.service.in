@@ -1,0 +1,13 @@
+[Unit]
+Description=OzzSoundBoard virtual microphone and soundboard daemon
+After=pipewire.service wireplumber.service
+Wants=pipewire.service
+
+[Service]
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/ozzsoundboard daemon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
