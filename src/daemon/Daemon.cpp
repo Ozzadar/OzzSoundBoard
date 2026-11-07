@@ -126,10 +126,11 @@ Response Daemon::status() {
         capture = stats.input.empty() ? "no microphone" : std::format("{}\t{}", state(stats.capture), stats.input);
     }
     std::string body = std::format(
-        "virtual_mic\t{}\t{}\nmic_capture\t{}\nmic_mode\t{}\nmonitor\t{}\nvoices\t{}\nsounds\t{}\n"
-        "mic_underruns\t{}\nconfig\t{}\n",
+        "virtual_mic\t{}\t{}\nmic_capture\t{}\nmic_mode\t{}\nnoise_suppression\t{}\nmonitor\t{}\nvoices\t{}\n"
+        "sounds\t{}\nmic_underruns\t{}\nconfig\t{}\n",
         options_.engine.nodeDescription, state(stats.virtualMic), capture,
         library_.input().empty() ? "automatic" : "fixed",
+        stats.noiseSuppression ? std::format("on\tvoice {:.0f}%", stats.voiceProbability * 100.0f) : "off",
         options_.engine.monitor ? state(stats.monitor) : "disabled", mixer_.liveVoices(),
         library_.sounds().size(), stats.micUnderruns, options_.configPath.string());
     return Response::success("running", std::move(body));
@@ -164,6 +165,7 @@ std::expected<void, std::string> Daemon::reload() {
     library_ = std::move(*library);
     engine_.setMicGain(library_.gains().mic);
     engine_.setPreferredInput(library_.input());
+    engine_.setNoiseSuppression(library_.noiseSuppression());
     mixer_.setTargetGain(Target::Mic, library_.gains().clipsToMic);
     mixer_.setTargetGain(Target::Monitor, library_.gains().clipsToMonitor);
 

@@ -68,6 +68,12 @@ std::expected<SoundLibrary, std::string> SoundLibrary::parse(std::string_view js
         }
         library.input_ = input->get<std::string>();
     }
+    if (auto denoise = root.find("noiseSuppression"); denoise != root.end()) {
+        if (!denoise->is_boolean()) {
+            return std::unexpected("\"noiseSuppression\" must be true or false");
+        }
+        library.noiseSuppression_ = denoise->get<bool>();
+    }
     if (auto gains = root.find("gains"); gains != root.end() && gains->is_object()) {
         library.gains_.mic = readGain(*gains, "mic", 1.0f);
         library.gains_.clipsToMic = readGain(*gains, "clipsToMic", 1.0f);
@@ -88,6 +94,7 @@ std::string SoundLibrary::serialize() const {
         {"clipsToMonitor", gains_.clipsToMonitor},
     };
     root["input"] = input_;
+    root["noiseSuppression"] = noiseSuppression_;
     return root.dump(2) + "\n";
 }
 

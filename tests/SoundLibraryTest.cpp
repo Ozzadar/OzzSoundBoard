@@ -42,6 +42,7 @@ TEST(SoundLibrary, SaveLoadRoundTrip) {
     ASSERT_TRUE(library.set("boo", "/sounds/boo.ogg"));
     library.gains() = {0.8f, 0.5f, 1.25f};
     library.setInput("alsa_input.usb-mic");
+    library.setNoiseSuppression(true);
     ASSERT_TRUE(library.save(file));
 
     auto loaded = SoundLibrary::load(file);
@@ -49,6 +50,7 @@ TEST(SoundLibrary, SaveLoadRoundTrip) {
     EXPECT_EQ(loaded->sounds(), library.sounds());
     EXPECT_EQ(loaded->gains(), library.gains());
     EXPECT_EQ(loaded->input(), "alsa_input.usb-mic");
+    EXPECT_TRUE(loaded->noiseSuppression());
     EXPECT_FALSE(std::filesystem::exists(file.string() + ".tmp"));
 }
 
@@ -60,6 +62,7 @@ TEST(SoundLibrary, ParsesPlainNameToPathMap) {
     EXPECT_EQ(library->find("nope"), nullptr);
     EXPECT_EQ(library->gains(), Gains{});
     EXPECT_EQ(library->input(), "") << "missing input means automatic";
+    EXPECT_FALSE(library->noiseSuppression()) << "noise suppression is opt-in";
 }
 
 TEST(SoundLibrary, PartialGainsKeepDefaults) {
@@ -77,6 +80,7 @@ TEST(SoundLibrary, RejectsMalformedConfig) {
     EXPECT_FALSE(SoundLibrary::parse(R"({"sounds": {"": "/b.wav"}})"));
     EXPECT_FALSE(SoundLibrary::parse(R"({"sounds": {"boo": ""}})"));
     EXPECT_FALSE(SoundLibrary::parse(R"({"input": 3})"));
+    EXPECT_FALSE(SoundLibrary::parse(R"({"noiseSuppression": "yes"})"));
 }
 
 TEST(SoundLibrary, ValidatesNames) {

@@ -16,6 +16,8 @@ sudo apt install libpipewire-0.3-dev libspa-0.2-dev libsndfile1-dev libsamplerat
     nlohmann-json3-dev qt6-base-dev libgtest-dev
 ```
 
+RNNoise is vendored in `third_party/rnnoise` (BSD-3, see `VENDORED.md`) because Ubuntu does not package it.
+
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_INSTALL_PREFIX=$HOME/.local
 cmake --build build
@@ -44,6 +46,9 @@ microphone that is unplugged falls back to automatic until it returns.
 ## GUI
 
 - **Microphone** picks what gets mixed into the virtual mic: *Automatic* or a specific device (● marks the one in use).
+- **Noise suppression** runs [RNNoise](https://github.com/xiph/rnnoise) on your microphone before sounds are mixed
+  in, so keyboard, fan and room noise go while rimshots stay intact. It adds 10 ms of latency. Use it instead of
+  meeting-app filters such as Google Meet's noise cancellation, which removes non-speech sounds like drums.
 - **Add…** picks one or more audio files; the name defaults to the file name. Names and paths edit in place.
 - **Preview** plays a sound through your speakers only. Nobody on a call hears it.
 - **Play** plays it into the virtual microphone and your speakers.
@@ -64,6 +69,7 @@ ozzsoundboard add <name> <path>
 ozzsoundboard remove <name>
 ozzsoundboard inputs             microphones: node name, description, flags (default/active/preferred)
 ozzsoundboard input [name|auto]  show or set the captured microphone
+ozzsoundboard denoise [on|off]   show or set noise suppression on the microphone (sounds are never filtered)
 ozzsoundboard reload
 ozzsoundboard status
 ozzsoundboard daemon [--node-name NAME] [--description TEXT] [--no-mic] [--no-monitor]
@@ -94,7 +100,8 @@ and a `stop` key makes a panic button.
     "air horn": "/home/me/Sounds/airhorn.wav"
   },
   "gains": { "mic": 1.0, "clipsToMic": 1.0, "clipsToMonitor": 1.0 },
-  "input": ""
+  "input": "",
+  "noiseSuppression": false
 }
 ```
 

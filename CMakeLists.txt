@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(OzzSoundBoard VERSION 0.1.0 LANGUAGES CXX)
+project(OzzSoundBoard VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +22,24 @@ pkg_check_modules(SAMPLERATE REQUIRED IMPORTED_TARGET samplerate)
 find_package(nlohmann_json 3.11 REQUIRED)
 find_package(Threads REQUIRED)
 
+# RNNoise 0.2 (BSD-3), vendored: not packaged for Ubuntu. See third_party/rnnoise/VENDORED.md.
+add_library(rnnoise STATIC
+  third_party/rnnoise/src/denoise.c
+  third_party/rnnoise/src/rnn.c
+  third_party/rnnoise/src/pitch.c
+  third_party/rnnoise/src/kiss_fft.c
+  third_party/rnnoise/src/celt_lpc.c
+  third_party/rnnoise/src/nnet.c
+  third_party/rnnoise/src/nnet_default.c
+  third_party/rnnoise/src/parse_lpcnet_weights.c
+  third_party/rnnoise/src/rnnoise_data.c
+  third_party/rnnoise/src/rnnoise_tables.c
+)
+target_include_directories(rnnoise PUBLIC third_party/rnnoise/include PRIVATE third_party/rnnoise/src)
+target_compile_options(rnnoise PRIVATE -w)
+set_target_properties(rnnoise PROPERTIES C_STANDARD 99 POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(rnnoise PRIVATE m)
+
 set(OZZSB_WARNINGS -Wall -Wextra -Wpedantic -Wno-missing-field-initializers -Wno-pedantic)
 
 add_library(ozzsb_core STATIC
@@ -30,6 +48,7 @@ add_library(ozzsb_core STATIC
   src/audio/Clip.cpp
   src/audio/InputSelection.cpp
   src/audio/Mixer.cpp
+  src/audio/NoiseSuppressor.cpp
   src/ipc/Protocol.cpp
   src/ipc/Socket.cpp
 )
@@ -37,7 +56,7 @@ target_include_directories(ozzsb_core PUBLIC src)
 target_compile_options(ozzsb_core PRIVATE ${OZZSB_WARNINGS})
 target_link_libraries(ozzsb_core
   PUBLIC nlohmann_json::nlohmann_json Threads::Threads
-  PRIVATE PkgConfig::SNDFILE PkgConfig::SAMPLERATE)
+  PRIVATE PkgConfig::SNDFILE PkgConfig::SAMPLERATE rnnoise)
 
 add_library(ozzsb_engine STATIC
   src/audio/Engine.cpp
@@ -79,6 +98,7 @@ if(OZZSB_BUILD_TESTS)
     tests/ClipTest.cpp
     tests/SocketTest.cpp
     tests/InputSelectionTest.cpp
+    tests/NoiseSuppressorTest.cpp
   )
   target_compile_options(ozzsb_tests PRIVATE ${OZZSB_WARNINGS})
   target_link_libraries(ozzsb_tests PRIVATE ozzsb_core GTest::gtest_main PkgConfig::SNDFILE)

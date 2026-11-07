@@ -423,6 +423,8 @@ Engine::Stats Engine::stats() const {
     stats.virtualMic = virtualMic_ && virtualMic_->streaming.load();
     stats.monitor = monitor_ && monitor_->streaming.load();
     stats.micUnderruns = micUnderruns_.load();
+    stats.noiseSuppression = denoiser_.enabled();
+    stats.voiceProbability = denoiser_.voiceProbability();
     const Inputs current = inputs();
     for (const InputSource& source : current.sources) {
         if (source.name == current.active) {
@@ -515,8 +517,16 @@ void Engine::processCapture() {
     if (data.data && data.chunk) {
         const std::uint32_t offset = std::min(data.chunk->offset, data.maxsize);
         const std::uint32_t size = std::min(data.chunk->size, data.maxsize - offset);
-        const auto* samples = reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(data.data) + offset);
-        micRing_.write(std::span(samples, size / sizeof(float)));
+        std::span<const float> samples(
+            reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(data.data) + offset), size / sizeof(float));
+        while (!samples.empty()) {
+            const std::size_t count = std::min(samples.size(), captureScratch_.size());
+            std::span<float> chunk(captureScratch_.data(), count);
+            std::ranges::copy(samples.first(count), chunk.begin());
+            denoiser_.process(chunk);
+            micRing_.write(chunk);
+            samples = samples.subspan(count);
+        }
     }
     pw_stream_queue_buffer(capture_->stream, buffer);
 }

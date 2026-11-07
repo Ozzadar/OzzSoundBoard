@@ -7,6 +7,7 @@
 #include "core/SoundLibrary.hpp"
 #include "ipc/Protocol.hpp"
 
+class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QLabel;
@@ -40,6 +41,7 @@ private:
     QTableWidget* table_ = nullptr;
     QLabel* status_ = nullptr;
     QComboBox* input_ = nullptr;
+    QCheckBox* noiseSuppression_ = nullptr;
     QString inputsSignature_;
     QDoubleSpinBox* micGain_ = nullptr;
     QDoubleSpinBox* clipsToMicGain_ = nullptr;

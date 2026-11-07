@@ -19,7 +19,8 @@ struct Gains {
 // Name -> audio file path store, persisted as JSON:
 //   { "sounds": { "airhorn": "/path/airhorn.wav" },
 //     "gains": { "mic": 1.0, "clipsToMic": 1.0, "clipsToMonitor": 1.0 },
-//     "input": "" }   microphone node.name to capture, empty = automatic
+//     "input": "",              microphone node.name to capture, empty = automatic
+//     "noiseSuppression": false }   RNNoise on the microphone (never on clips)
 class SoundLibrary {
 public:
     static std::expected<SoundLibrary, std::string> load(const std::filesystem::path& path);
@@ -37,6 +38,8 @@ public:
     const std::map<std::string, std::filesystem::path, std::less<>>& sounds() const { return sounds_; }
     const std::string& input() const { return input_; }
     void setInput(std::string input) { input_ = std::move(input); }
+    bool noiseSuppression() const { return noiseSuppression_; }
+    void setNoiseSuppression(bool enabled) { noiseSuppression_ = enabled; }
 
     Gains& gains() { return gains_; }
     const Gains& gains() const { return gains_; }
@@ -45,6 +48,7 @@ private:
     std::map<std::string, std::filesystem::path, std::less<>> sounds_;
     Gains gains_;
     std::string input_;
+    bool noiseSuppression_ = false;
 };
 
 }  // namespace ozzsb

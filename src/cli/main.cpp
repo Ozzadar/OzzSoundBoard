@@ -31,6 +31,7 @@ Commands:
   remove <name>         remove a sound
   inputs                list microphones the soundboard can capture
   input [name|auto]     show or set the microphone to capture (auto follows the system default)
+  denoise [on|off]      show or set noise suppression on your microphone (sounds are never filtered)
   reload                make the daemon re-read the config
   status                show daemon state
 
@@ -183,6 +184,25 @@ int main(int argc, char** argv) {
         }
         return editLibrary(globals, [&](SoundLibrary& library) -> std::expected<void, std::string> {
             library.setInput(name == "auto" ? std::string() : name);
+            return {};
+        });
+    }
+    if (command == "denoise") {
+        if (name.empty()) {
+            auto library = SoundLibrary::load(globals.config);
+            if (!library) {
+                std::println(stderr, "ozzsoundboard: {}", library.error());
+                return 1;
+            }
+            std::println("{}", library->noiseSuppression() ? "on" : "off");
+            return 0;
+        }
+        if (name != "on" && name != "off") {
+            std::println(stderr, "usage: ozzsoundboard denoise [on|off]");
+            return 2;
+        }
+        return editLibrary(globals, [&](SoundLibrary& library) -> std::expected<void, std::string> {
+            library.setNoiseSuppression(name == "on");
             return {};
         });
     }

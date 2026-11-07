@@ -5,6 +5,7 @@
 #include <set>
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
 #include <QSignalBlocker>
@@ -88,6 +89,9 @@ MainWindow::MainWindow(std::filesystem::path configPath, std::filesystem::path s
     input_->setToolTip("Microphone mixed into OzzSoundBoard Microphone");
     connect(input_, &QComboBox::currentIndexChanged, this, [this] { commit(); });
     gains->addRow("Microphone", input_);
+    noiseSuppression_ = new QCheckBox("Remove background noise from your voice (sounds are never filtered)", central);
+    connect(noiseSuppression_, &QCheckBox::toggled, this, [this] { commit(); });
+    gains->addRow("Noise suppression", noiseSuppression_);
     micGain_ = makeGain(central);
     clipsToMicGain_ = makeGain(central);
     clipsToMonitorGain_ = makeGain(central);
@@ -128,6 +132,10 @@ void MainWindow::populate() {
         addRow(toQString(name), toQString(path.string()));
     }
     showInputs({});
+    {
+        const QSignalBlocker blocker(noiseSuppression_);
+        noiseSuppression_->setChecked(library_.noiseSuppression());
+    }
     micGain_->setValue(library_.gains().mic);
     clipsToMicGain_->setValue(library_.gains().clipsToMic);
     clipsToMonitorGain_->setValue(library_.gains().clipsToMonitor);
@@ -170,6 +178,7 @@ bool MainWindow::commit() {
     edited.gains() = {static_cast<float>(micGain_->value()), static_cast<float>(clipsToMicGain_->value()),
                       static_cast<float>(clipsToMonitorGain_->value())};
     edited.setInput(input_->currentData().toString().toStdString());
+    edited.setNoiseSuppression(noiseSuppression_->isChecked());
 
     if (auto saved = edited.save(configPath_); !saved) {
         QMessageBox::warning(this, "OzzSoundBoard", toQString(saved.error()));

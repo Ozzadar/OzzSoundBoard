@@ -9,6 +9,7 @@
 
 #include "audio/InputSelection.hpp"
 #include "audio/Mixer.hpp"
+#include "audio/NoiseSuppressor.hpp"
 #include "audio/SpscRing.hpp"
 
 struct pw_context;
@@ -37,6 +38,8 @@ public:
         bool monitor = false;
         std::uint64_t micUnderruns = 0;
         std::string input;  // description of the captured microphone, empty when none
+        bool noiseSuppression = false;
+        float voiceProbability = 0.0f;
     };
 
     struct Inputs {
@@ -55,6 +58,8 @@ public:
     void stop();
 
     void setMicGain(float gain) { micGain_.store(gain, std::memory_order_relaxed); }
+    // RNNoise on the captured microphone only; clips are mixed in afterwards and never denoised.
+    void setNoiseSuppression(bool enabled) { denoiser_.setEnabled(enabled); }
     // node.name of the microphone to capture; empty follows the system default.
     void setPreferredInput(std::string name);
     Inputs inputs() const;
@@ -100,6 +105,8 @@ private:
     bool ready_ = false;
 
     SpscRing<float> micRing_{1 << 16};
+    NoiseSuppressor denoiser_;
+    std::array<float, 4096> captureScratch_{};
     std::atomic<float> micGain_{1.0f};
     std::atomic<std::uint64_t> micUnderruns_{0};
 };
